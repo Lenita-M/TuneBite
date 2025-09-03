@@ -73,6 +73,7 @@ class Snake:
     def __init__(self): #snake starts with 3 segments
         self.body = [Vector2(6, 9), Vector2(5, 9), Vector2(4, 9)]
         self.direction = Vector2(1, 0)
+        self.direction_queue = []  # Queue for pending direction changes
         self.add_segment = False
         self.eat_sound = pygame.mixer.Sound('Sounds/eat.mp3')
         self.wall_hit = pygame.mixer.Sound('Sounds/wall.mp3')
@@ -89,10 +90,15 @@ class Snake:
             self.add_segment = False
         else: # 
             self.body = self.body[:-1] #otherwise, remove the last segment to simulate movement
+        
+        # Apply the next queued direction after moving (prevents instant reversal)
+        if self.direction_queue:
+            self.direction = self.direction_queue.pop(0)
 
     def reset(self): #reset snake to initial position and direction
         self.body = [Vector2(6, 9), Vector2(5, 9), Vector2(4, 9)]
         self.direction = Vector2(1, 0)
+        self.direction_queue = []
 
 # Game class #
 
@@ -154,7 +160,8 @@ class Game:
             self.special_food = None  # Remove special food after eating
 
             # Change background music
-            new_track = random.choice(background_tracks)
+            background_tracks_minus_current = [track for track in background_tracks if track != self.current_track]
+            new_track = random.choice(background_tracks_minus_current)
             self.play_music(new_track)
 
 
@@ -225,16 +232,26 @@ while True: #handle events
                 pygame.mixer.music.play(-1)
 
             if game.state == "RUNNING":
-            # Change snake direction based on arrow key pressed
-                if event.key == pygame.K_UP and game.snake.direction.y != Vector2(0, 1).y:
-                    game.snake.direction = Vector2(0, -1)
-                if event.key == pygame.K_DOWN and game.snake.direction.y != Vector2(0, -1).y:
-                    game.snake.direction = Vector2(0, 1)
-                if event.key == pygame.K_LEFT and game.snake.direction.x != Vector2(1, 0).x:
-                    game.snake.direction = Vector2(-1, 0)
-                if event.key == pygame.K_RIGHT and game.snake.direction.x != Vector2(-1, 0).x:
-                    game.snake.direction = Vector2(1, 0)
-   
+                # Queue snake direction changes based on arrow key pressed
+                new_dir = None
+                if event.key == pygame.K_UP:
+                    new_dir = Vector2(0, -1)
+                elif event.key == pygame.K_DOWN:
+                    new_dir = Vector2(0, 1)
+                elif event.key == pygame.K_LEFT:
+                    new_dir = Vector2(-1, 0)
+                elif event.key == pygame.K_RIGHT:
+                    new_dir = Vector2(1, 0)
+                
+                if new_dir:
+                    snake = game.snake
+                    if not snake.direction_queue:
+                        if new_dir != -snake.direction:
+                            snake.direction_queue.append(new_dir)
+                    else:
+                        last_queued = snake.direction_queue[-1]
+                        if new_dir != -last_queued:
+                            snake.direction_queue.append(new_dir)
 
     # Drawing #
 
