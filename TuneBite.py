@@ -168,8 +168,8 @@ class Game:
        self.snake.reset()
        self.food.position = self.food.generate_random_pos(self.snake.body)
        self.state = "STOPPED"
-       self.score = 0
        self.snake.wall_hit.play()
+       pygame.mixer.music.stop()
 
     def check_collision_body(self): #check if snake head collides with its body
         headless_body = self.snake.body[1:]
@@ -186,7 +186,13 @@ pygame.display.set_caption("TuneBite")
 
 clock = pygame.time.Clock()
 
+# Load music
+pygame.mixer.music.load("Sounds/menu_music.mp3")
+pygame.mixer.music.play(-1)  # loop forever
+
 game=Game()
+game.state = "HOME"  # start at home screen
+
 food_surface = pygame.image.load('Graphics/food.png')
 special_food_surface = pygame.image.load('Graphics/special_food.png')   
 
@@ -199,28 +205,63 @@ pygame.time.set_timer(SNAKE_UPDATE, 200)
 
 while True: #handle events
     for event in pygame.event.get():
-        if event.type == SNAKE_UPDATE:
-            game.update()
         if event.type == pygame.QUIT:
             pygame.quit()
             sys.exit()
+        if event.type == SNAKE_UPDATE:
+            game.update()
         if event.type == pygame.KEYDOWN: #Restart game on any key press
-            if game.state == "STOPPED": 
-                game.state = "RUNNING" 
+            if game.state == "HOME" and event.key == pygame.K_SPACE:
+                game = Game()
+                game.state = "RUNNING"
+                pygame.mixer.music.load('Sounds/menu_music.mp3')
+                pygame.mixer.music.play(-1)
+
+            # STOPPED → RUNNING
+            elif game.state == "STOPPED" and event.key == pygame.K_SPACE:
+                game = Game()
+                game.state = "RUNNING"
+                pygame.mixer.music.load('Sounds/menu_music.mp3')
+                pygame.mixer.music.play(-1)
+
+            if game.state == "RUNNING":
             # Change snake direction based on arrow key pressed
-            if event.key == pygame.K_UP and game.snake.direction.y != Vector2(0, 1).y:
-                game.snake.direction = Vector2(0, -1)
-            if event.key == pygame.K_DOWN and game.snake.direction.y != Vector2(0, -1).y:
-                game.snake.direction = Vector2(0, 1)
-            if event.key == pygame.K_LEFT and game.snake.direction.x != Vector2(1, 0).x:
-                game.snake.direction = Vector2(-1, 0)
-            if event.key == pygame.K_RIGHT and game.snake.direction.x != Vector2(-1, 0).x:
-                game.snake.direction = Vector2(1, 0)
+                if event.key == pygame.K_UP and game.snake.direction.y != Vector2(0, 1).y:
+                    game.snake.direction = Vector2(0, -1)
+                if event.key == pygame.K_DOWN and game.snake.direction.y != Vector2(0, -1).y:
+                    game.snake.direction = Vector2(0, 1)
+                if event.key == pygame.K_LEFT and game.snake.direction.x != Vector2(1, 0).x:
+                    game.snake.direction = Vector2(-1, 0)
+                if event.key == pygame.K_RIGHT and game.snake.direction.x != Vector2(-1, 0).x:
+                    game.snake.direction = Vector2(1, 0)
    
 
     # Drawing #
 
     screen.fill(GREEN)
+
+    # HOME SCREEN
+    if game.state == "HOME":
+        title_surface = title_font.render("TuneBite", True, DARK_GREEN)
+        info_surface = score_font.render("Press SPACE to Start", True, DARK_GREEN)
+        screen.blit(title_surface, (screen.get_width()//2 - title_surface.get_width()//2, 200))
+        screen.blit(info_surface, (screen.get_width()//2 - info_surface.get_width()//2, 300))
+        pygame.display.update()
+        clock.tick(60)
+        continue
+
+        # GAME OVER SCREEN
+    if game.state == "STOPPED":
+        over_surface = title_font.render("Game Over!", True, DARK_GREEN)
+        score_surface = score_font.render(f"Final Score: {game.score}", True, DARK_GREEN)
+        retry_surface = score_font.render("Press SPACE to Play Again", True, DARK_GREEN)
+        screen.blit(over_surface, (screen.get_width()//2 - over_surface.get_width()//2, 200))
+        screen.blit(score_surface, (screen.get_width()//2 - score_surface.get_width()//2, 270))
+        screen.blit(retry_surface, (screen.get_width()//2 - retry_surface.get_width()//2, 340))
+        pygame.display.update()
+        clock.tick(60)
+        continue
+
 
     # Draw game border
 
